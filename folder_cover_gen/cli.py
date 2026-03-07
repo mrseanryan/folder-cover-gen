@@ -15,6 +15,7 @@ def process(folder):
     out=folder/OUTPUT_NAME
 
     if out.exists():
+        print(f"[skipped] {folder} - output already exists: {out}")
         return
 
     imgs=get_all_images_in_folder(folder)
@@ -54,12 +55,12 @@ if __name__ == "__main__":
     def print_usage():
         print("\nPhoto Folder Covers — Dropbox-style folder thumbnails\n")
         print("USAGE:")
-        print("    python -m foldercovers <photo_root_folder>\n")
+        print("    python -m folder_cover_gen.cli <photo_root_folder>\n")
         print("ARGUMENTS:")
-        print("    photo_root_folder   Path containing photo folders\n")
+        print("    photo_root_folder - The path to the folder which contains photo folders>\n")
         print("EXAMPLES:")
-        print("    python -m foldercovers ~/Pictures")
-        print("    python -m foldercovers /Volumes/PhotoArchive\n")
+        print("    python -m folder_cover_gen.cli ~/Pictures")
+        print("    python -m folder_cover_gen.cli /Volumes/PhotoArchive\n")
 
     if len(sys.argv) < 2:
         print_usage()
@@ -76,5 +77,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     main(root)
-
-print("[done]")
+    print("[done]")
