@@ -2,9 +2,9 @@ import cv2
 import numpy as np
 import random
 
-COVER_SIZE = 512
+COVER_SIZE = 1024
 PHOTO_SIZE = 300
-BORDER = 14
+BORDER = 3
 
 
 def load_small(path):
@@ -32,12 +32,15 @@ def rotate(img, angle):
 
     M = cv2.getRotationMatrix2D(center, angle, 1.0)
 
-    return cv2.warpAffine(
+    rotated = cv2.warpAffine(
         img,
         M,
         (w, h),
-        borderMode=cv2.BORDER_TRANSPARENT
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(0, 0, 0)
     )
+    
+    return rotated
 
 
 def add_shadow(canvas, x, y, w, h):
@@ -57,15 +60,49 @@ def add_shadow(canvas, x, y, w, h):
     cv2.addWeighted(shadow, alpha, canvas, 1-alpha, 0, canvas)
 
 
+def expand_with_black_border(img):
+    """Expand image with black background by 50%"""
+    h, w = img.shape[:2]
+    new_size = int(max(h, w) * 1.5)
+    
+    expanded = np.zeros((new_size, new_size, 3), dtype=np.uint8)
+    
+    y_offset = (new_size - h) // 2
+    x_offset = (new_size - w) // 2
+    
+    expanded[y_offset:y_offset+h, x_offset:x_offset+w] = img
+    
+    return expanded
+
+
 def paste(canvas, img, x, y):
 
     h, w = img.shape[:2]
+    
+    # Clip coordinates to canvas boundaries
+    y_start = max(0, y)
+    x_start = max(0, x)
+    y_end = min(canvas.shape[0], y + h)
+    x_end = min(canvas.shape[1], x + w)
+    
+    # Calculate corresponding image slice
+    img_y_start = y_start - y
+    img_x_start = x_start - x
+    img_y_end = img_y_start + (y_end - y_start)
+    img_x_end = img_x_start + (x_end - x_start)
+    
+    # Skip if there's nothing to paste
+    if y_end <= y_start or x_end <= x_start:
+        return
+    
+    # Get the image slice to paste
+    img_slice = img[img_y_start:img_y_end, img_x_start:img_x_end]
 
-    sub = canvas[y:y+h, x:x+w]
+    # Create mask - pixels where at least one channel is non-zero
+    mask = np.any(img_slice != 0, axis=2)
 
-    mask = img.sum(axis=2) > 0
-
-    sub[mask] = img[mask]
+    # Create a fresh target by reading current canvas and updating only mask pixels
+    canvas[y_start:y_end, x_start:x_end][mask] = img_slice[mask]
 
 
 def prepare_image(path):
@@ -78,6 +115,8 @@ def prepare_image(path):
     img = cv2.resize(img, (PHOTO_SIZE, PHOTO_SIZE))
 
     img = add_border(img)
+    
+    img = expand_with_black_border(img)
 
     angle = random.uniform(-20, 20)
 
@@ -101,9 +140,9 @@ def create_collage(paths):
         return None
 
     positions = [
-        (random.randint(40,80), random.randint(40,80)),
-        (random.randint(150,200), random.randint(90,140)),
-        (random.randint(90,140), random.randint(200,240))
+        (random.randint(80,130), random.randint(80,130)),
+        (random.randint(350,400), random.randint(80,130)),
+        (random.randint(215,265), random.randint(350,400))
     ]
 
     for img,(x,y) in zip(imgs,positions):
@@ -112,5 +151,40 @@ def create_collage(paths):
 
         add_shadow(canvas,x,y,w,h)
         paste(canvas,img,x,y)
+
+    # Crop to remove excess black and add a small border
+    gray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
+    non_black = gray > 0
+    coords = np.argwhere(non_black)
+    
+    if len(coords) > 0:
+        y_min, x_min = coords.min(axis=0)
+        y_max, x_max = coords.max(axis=0)
+        
+        # Add some padding
+        padding = 20
+        y_min = max(0, y_min - padding)
+        x_min = max(0, x_min - padding)
+        y_max = min(canvas.shape[0], y_max + padding)
+        x_max = min(canvas.shape[1], x_max + padding)
+        
+        # Crop and ensure square aspect ratio
+        crop_h = y_max - y_min
+        crop_w = x_max - x_min
+        crop_size = max(crop_h, crop_w)
+        
+        # Recenter if needed
+        if crop_h < crop_size:
+            y_min = max(0, y_min - (crop_size - crop_h) // 2)
+            y_max = min(canvas.shape[0], y_min + crop_size)
+        if crop_w < crop_size:
+            x_min = max(0, x_min - (crop_size - crop_w) // 2)
+            x_max = min(canvas.shape[1], x_min + crop_size)
+        
+        canvas = canvas[y_min:y_max, x_min:x_max]
+        
+        # Add black border
+        border_size = 10
+        canvas = cv2.copyMakeBorder(canvas, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=(0, 0, 0))
 
     return canvas
