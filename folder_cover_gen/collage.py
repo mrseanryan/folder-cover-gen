@@ -143,14 +143,16 @@ def create_collage(paths):
 
     # Add other images first (stop at 2 if we have a cover, or 3 if we don't)
     target_count = 2 if cover_idx is not None else 3
-    for i, p in enumerate(paths):
-        if i != cover_idx:
-            img = prepare_image(p)
-            if img is not None:
-                imgs.append(img)
-                img_paths.append(p)
-            if len(imgs) >= target_count:
-                break
+    available_paths = [p for i, p in enumerate(paths) if i != cover_idx]
+    random.shuffle(available_paths)
+    
+    for p in available_paths:
+        img = prepare_image(p)
+        if img is not None:
+            imgs.append(img)
+            img_paths.append(p)
+        if len(imgs) >= target_count:
+            break
     
     # Then prepare and add the cover image at the end (so it draws on top)
     if cover_idx is not None:
