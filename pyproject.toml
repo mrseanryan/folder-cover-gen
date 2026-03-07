@@ -1,0 +1,15 @@
+[project]
+name = "photo-folder-covers"
+version = "0.1.0"
+description = "Generate Dropbox-style collage covers for photo folders"
+authors = [{name = "Your Name"}]
+requires-python = "==3.14.*"
+
+dependencies = [
+    "opencv-python",
+    "numpy",
+    "tqdm"
+]
+
+[project.scripts]
+foldercovers = "folder_cover_gen.cli:main"
