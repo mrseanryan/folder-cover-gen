@@ -45,13 +45,13 @@ def safe_imwrite(path, img, quality=92):
         )
 
         if not ok:
-            print("will save via PIL (imwrite fail: OpenCV returned False)")
+            print(" - will save via PIL (imwrite fail: OpenCV returned False)")
             return False
 
         return True
 
     except Exception as e:
-        print(f"will save via PIL (imwrite exception: {e})")
+        print(f" - will save via PIL (imwrite exception: {e})")
         return False
 
 def pillow_fallback(path, img):
