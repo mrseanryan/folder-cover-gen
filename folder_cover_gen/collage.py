@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import random
+from pathlib import Path
 
 COVER_SIZE = 1024
 PHOTO_SIZE = 300
@@ -106,10 +107,10 @@ def paste(canvas, img, x, y):
 
 
 def prepare_image(path):
-
     img = load_small(path)
 
     if img is None:
+        print(f"WARNING: Failed to load image: {path}")
         return None
 
     img = cv2.resize(img, (PHOTO_SIZE, PHOTO_SIZE))
@@ -133,14 +134,13 @@ def create_collage(paths):
     img_paths = []
     
     # First, identify the cover image by filename (case-insensitive, just the filename)
-    from pathlib import Path
     cover_idx = None
     for i, p in enumerate(paths):
         filename = Path(p).name.lower()
         if filename.lower().startswith('cover.'):
             cover_idx = i
             break
-    
+
     # Add other images first (stop at 2 if we have a cover, or 3 if we don't)
     target_count = 2 if cover_idx is not None else 3
     for i, p in enumerate(paths):
@@ -166,13 +166,17 @@ def create_collage(paths):
         print(f"WARNING: Not enough valid images to create collage for: {paths}")
         return None
 
+    if len(imgs) > 3:
+        raise ValueError(f"Too many images prepared for collage: {len(imgs)}. Paths: {img_paths}")
+
+    if cover_idx is not None and "cover." not in str(img_paths[-1]).lower():
+        raise ValueError(f"Cover image is not at the end of the list: {img_paths[-1]}")
+
     positions = [
         (random.randint(80,130), random.randint(80,130)),
         (random.randint(350,400), random.randint(80,130)),
         (random.randint(215,265), random.randint(350,400))
     ]
-
-    print(f"Creating collage with images: {img_paths} at positions: {positions}")
 
     for img,(x,y) in zip(imgs,positions):
 

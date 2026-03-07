@@ -21,11 +21,8 @@ def find_photo_folders(root):
     return folders
 
 
-def pick_images(folder):
+def get_all_images_in_folder(folder):
 
     imgs=[p for p in folder.iterdir() if p.suffix.lower() in IMAGE_EXT]
 
-    if len(imgs)<3:
-        return None
-
-    return random.sample(imgs,3)
+    return imgs

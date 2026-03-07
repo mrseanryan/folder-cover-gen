@@ -3,7 +3,7 @@ import cv2
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
-from .scanner import find_photo_folders,pick_images
+from .scanner import find_photo_folders,get_all_images_in_folder
 from .collage import create_collage
 
 OUTPUT_NAME="folder_cover.jpg"
@@ -16,7 +16,7 @@ def process(folder):
     if out.exists():
         return
 
-    imgs=pick_images(folder)
+    imgs=get_all_images_in_folder(folder)
 
     if imgs is None:
         return
@@ -38,11 +38,15 @@ def main(path):
 
     print(f"Found {len(folders)} folders")
 
-    workers=os.cpu_count()
+    is_mt = False
 
-    with ProcessPoolExecutor(workers) as exe:
-
-        list(tqdm(exe.map(process,folders),total=len(folders)))
+    if is_mt:
+        workers=os.cpu_count()
+        with ProcessPoolExecutor(workers) as exe:
+            list(tqdm(exe.map(process,folders),total=len(folders)))
+    else:
+        for folder in tqdm(folders):
+            process(folder)
 
 if __name__ == "__main__":
     import sys
