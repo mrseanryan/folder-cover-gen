@@ -1,3 +1,4 @@
+from PIL import Image
 import cv2
 import numpy as np
 import random
@@ -7,11 +8,24 @@ COVER_SIZE = 1024
 PHOTO_SIZE = 300
 BORDER = 3
 
+def load_small(path, max_dim=1200):
+    print("xxx Loading image:", path)
+    try:
+        img = Image.open(path)
 
-def load_small(path):
-    img = cv2.imread(str(path), cv2.IMREAD_REDUCED_COLOR_4)
-    return img
+        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+
+        img = np.array(img)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        return img
+
+    except Exception as e:
+        print(f"Error loading image {path}: {e}")
+        return None
 
 def add_border(img):
 

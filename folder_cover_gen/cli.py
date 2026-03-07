@@ -1,7 +1,10 @@
 import os
+from PIL import Image
 import cv2
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
+from pathlib import Path
+import numpy as np
 
 from . import config
 from .scanner import find_photo_folders,get_all_images_in_folder
@@ -9,6 +12,48 @@ from .collage import create_collage
 
 OUTPUT_NAME="folder_cover.jpg"
 
+
+def safe_imwrite(path, img, quality=92):
+    try:
+        path = Path(path)
+
+        # Ensure folder exists
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        if img is None:
+            print("imwrite fail: image is None")
+            return False
+
+        if img.size == 0:
+            print("imwrite fail: empty image")
+            return False
+
+        if img.dtype != np.uint8:
+            img = np.clip(img, 0, 255).astype(np.uint8)
+
+        if np.isnan(img).any():
+            print("imwrite fail: NaNs in image")
+            return False
+
+        ok = cv2.imwrite(
+            str(path),
+            img,
+            [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+
+        if not ok:
+            print("imwrite fail: OpenCV returned False")
+            return False
+
+        return True
+
+    except Exception as e:
+        print(f"imwrite exception: {e}")
+        return False
+
+def pillow_fallback(path, img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    Image.fromarray(img).save(path, quality=92)
 
 def process(folder):
 
@@ -26,10 +71,14 @@ def process(folder):
     collage=create_collage(imgs)
 
     if collage is None:
+        print(f"WARNING: Failed to create collage for folder: {folder}")
         return
 
-    cv2.imwrite(str(out),collage,[cv2.IMWRITE_JPEG_QUALITY,92])
-
+    print(f"Saving cover for folder: {folder} -> {out}")
+    # cv2.imwrite(str(out), collage, [cv2.IMWRITE_JPEG_QUALITY,92])
+    ok = safe_imwrite(out, collage)
+    if not ok:
+        pillow_fallback(out, collage)
 
 def main(path):
     if not os.path.exists(path):

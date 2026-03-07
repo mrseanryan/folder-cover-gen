@@ -3,6 +3,10 @@ import random
 
 IMAGE_EXT = {".jpg",".jpeg",".png",".webp"}
 
+def _has_folder_enough_images(folder):
+    imgs=[f for f in folder.iterdir() if f.suffix.lower() in IMAGE_EXT]
+
+    return len(imgs)>=3
 
 def find_photo_folders(root):
 
@@ -13,10 +17,11 @@ def find_photo_folders(root):
         if not p.is_dir():
             continue
 
-        imgs=[f for f in p.iterdir() if f.suffix.lower() in IMAGE_EXT]
+        if _has_folder_enough_images(p):
+             folders.append(p)
 
-        if len(imgs)>=3:
-            folders.append(p)
+    if len(folders)==0 and _has_folder_enough_images(Path(root)):
+        folders.append(Path(root))
 
     return folders
 
