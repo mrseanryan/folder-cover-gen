@@ -17,6 +17,10 @@ OUTPUT_NAME="folder_cover.jpg"
 
 
 def safe_imwrite(path, img, quality=92):
+    def _print_warning(msg):
+        output.print_warning(f" - will save via PIL - {msg}")
+        print(msg)
+
     try:
         path = Path(path)
 
@@ -24,18 +28,18 @@ def safe_imwrite(path, img, quality=92):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         if img is None:
-            print("imwrite fail: image is None")
+            _print_warning("imwrite fail: image is None")
             return False
 
         if img.size == 0:
-            print("imwrite fail: empty image")
+            _print_warning("imwrite fail: empty image")
             return False
 
         if img.dtype != np.uint8:
             img = np.clip(img, 0, 255).astype(np.uint8)
 
         if np.isnan(img).any():
-            print("imwrite fail: NaNs in image")
+            _print_warning("imwrite fail: NaNs in image")
             return False
 
         ok = cv2.imwrite(
@@ -45,13 +49,13 @@ def safe_imwrite(path, img, quality=92):
         )
 
         if not ok:
-            print(" - will save via PIL (imwrite fail: OpenCV returned False)")
+            _print_warning(" - will save via PIL (imwrite fail: OpenCV returned False)")
             return False
 
         return True
 
     except Exception as e:
-        print(f" - will save via PIL (imwrite exception: {e})")
+        _print_warning(f" - will save via PIL (imwrite exception: {e})")
         return False
 
 def pillow_fallback(path, img):
