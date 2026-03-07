@@ -7,6 +7,7 @@ For example:
 
 ![no-cover](./test_data/japan-by-night/no-cover/folder_cover.jpg)
 
+- performance: makes use of GPU (via opencv) and multithreading
 
 ## Usage
 
