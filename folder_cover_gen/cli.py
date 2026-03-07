@@ -6,11 +6,12 @@ from tqdm import tqdm
 from pathlib import Path
 import numpy as np
 
-from folder_cover_gen import output
 
 from . import config
+from . import output
 from .scanner import find_photo_folders,get_all_images_in_folder
 from .collage import create_collage
+from .result import Result
 
 OUTPUT_NAME="folder_cover.jpg"
 
@@ -57,29 +58,34 @@ def pillow_fallback(path, img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     Image.fromarray(img).save(path, quality=92)
 
-def process(folder):
+def process(folder, result: Result):
 
     out=folder/OUTPUT_NAME
 
     if out.exists():
         output.print_verbose(f"[skipped] {folder} - output already exists: {out}")
+        result.folders_skipped += 1
         return
 
     imgs=get_all_images_in_folder(folder)
 
     if imgs is None:
+        output.print_verbose(f"[skipped] {folder} - no images found")
+        result.folders_skipped += 1
         return
 
     collage=create_collage(imgs)
 
     if collage is None:
         output.print_warning(f"WARNING: Failed to create collage for folder: {folder}")
+        result.folders_skipped += 1
         return
 
     output.print_verbose(f"Saving cover for folder: {folder} -> {out}")
     ok = safe_imwrite(out, collage)
     if not ok:
         pillow_fallback(out, collage)
+    result.folders_updated += 1
 
 def main(path):
     if not os.path.exists(path):
@@ -90,13 +96,17 @@ def main(path):
 
     print(f"Found {len(folders)} folders")
 
+    result = Result()
+    result.found_folders = len(folders)
     if config.is_mt:
         workers=os.cpu_count()
         with ProcessPoolExecutor(workers) as exe:
             list(tqdm(exe.map(process,folders),total=len(folders)))
     else:
         for folder in tqdm(folders):
-            process(folder)
+            process(folder, result=result)
+
+    print(result)
 
 if __name__ == "__main__":
     import sys
