@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageOps
 import cv2
 import numpy as np
 import random
@@ -14,6 +14,9 @@ def load_small(path, max_dim=1200):
     output.print_debug(f"Loading image: {path}")
     try:
         img = Image.open(path)
+
+        # ✅ Apply EXIF orientation
+        img = ImageOps.exif_transpose(img)
 
         img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
