@@ -6,6 +6,8 @@ from tqdm import tqdm
 from pathlib import Path
 import numpy as np
 
+from folder_cover_gen import output
+
 from . import config
 from .scanner import find_photo_folders,get_all_images_in_folder
 from .collage import create_collage
@@ -60,7 +62,7 @@ def process(folder):
     out=folder/OUTPUT_NAME
 
     if out.exists():
-        print(f"[skipped] {folder} - output already exists: {out}")
+        output.print_verbose(f"[skipped] {folder} - output already exists: {out}")
         return
 
     imgs=get_all_images_in_folder(folder)
@@ -71,11 +73,10 @@ def process(folder):
     collage=create_collage(imgs)
 
     if collage is None:
-        print(f"WARNING: Failed to create collage for folder: {folder}")
+        output.print_warning(f"WARNING: Failed to create collage for folder: {folder}")
         return
 
-    print(f"Saving cover for folder: {folder} -> {out}")
-    # cv2.imwrite(str(out), collage, [cv2.IMWRITE_JPEG_QUALITY,92])
+    output.print_verbose(f"Saving cover for folder: {folder} -> {out}")
     ok = safe_imwrite(out, collage)
     if not ok:
         pillow_fallback(out, collage)

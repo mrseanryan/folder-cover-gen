@@ -4,12 +4,14 @@ import numpy as np
 import random
 from pathlib import Path
 
+from . import output
+
 COVER_SIZE = 1024
 PHOTO_SIZE = 300
 BORDER = 3
 
 def load_small(path, max_dim=1200):
-    print("xxx Loading image:", path)
+    output.print_debug(f"Loading image: {path}")
     try:
         img = Image.open(path)
 
@@ -24,7 +26,7 @@ def load_small(path, max_dim=1200):
         return img
 
     except Exception as e:
-        print(f"Error loading image {path}: {e}")
+        output.print_error(f"Error loading image {path}: {e}")
         return None
 
 def add_border(img):
@@ -176,10 +178,10 @@ def create_collage(paths):
             img_paths.append(paths[cover_idx])
         else:
             # If cover image failed to prepare, log it
-            print(f"WARNING: Cover image failed to prepare: {paths[cover_idx]}")
+            output.print_warning(f"Cover image failed to prepare: {paths[cover_idx]}")
 
     if len(imgs) < 3:
-        print(f"WARNING: Not enough valid images to create collage for: {paths}")
+        output.print_warning(f"Not enough valid images to create collage for: {paths}")
         return None
 
     if len(imgs) > 3:
