@@ -130,13 +130,40 @@ def create_collage(paths):
     canvas = np.zeros((COVER_SIZE, COVER_SIZE, 3), dtype=np.uint8)
 
     imgs = []
-
-    for p in paths:
-        img = prepare_image(p)
-        if img is not None:
-            imgs.append(img)
+    img_paths = []
+    
+    # First, identify the cover image by filename (case-insensitive, just the filename)
+    from pathlib import Path
+    cover_idx = None
+    for i, p in enumerate(paths):
+        filename = Path(p).name.lower()
+        if filename.lower().startswith('cover.'):
+            cover_idx = i
+            break
+    
+    # Add other images first (stop at 2 if we have a cover, or 3 if we don't)
+    target_count = 2 if cover_idx is not None else 3
+    for i, p in enumerate(paths):
+        if i != cover_idx:
+            img = prepare_image(p)
+            if img is not None:
+                imgs.append(img)
+                img_paths.append(p)
+            if len(imgs) >= target_count:
+                break
+    
+    # Then prepare and add the cover image at the end (so it draws on top)
+    if cover_idx is not None:
+        cover_img = prepare_image(paths[cover_idx])
+        if cover_img is not None:
+            imgs.append(cover_img)
+            img_paths.append(paths[cover_idx])
+        else:
+            # If cover image failed to prepare, log it
+            print(f"WARNING: Cover image failed to prepare: {paths[cover_idx]}")
 
     if len(imgs) < 3:
+        print(f"WARNING: Not enough valid images to create collage for: {paths}")
         return None
 
     positions = [
@@ -144,6 +171,8 @@ def create_collage(paths):
         (random.randint(350,400), random.randint(80,130)),
         (random.randint(215,265), random.randint(350,400))
     ]
+
+    print(f"Creating collage with images: {img_paths} at positions: {positions}")
 
     for img,(x,y) in zip(imgs,positions):
 
