@@ -25,6 +25,8 @@ For example:
 
 1. Install uv
 
+Assumption: you have already installed a [recent version of Python](https://www.python.org/downloads/).
+
 ```
 pip install uv
 ```

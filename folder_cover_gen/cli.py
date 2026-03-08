@@ -15,6 +15,16 @@ from .scanner import find_photo_folders,get_all_images_in_folder
 from .collage import create_collage
 from .result import Result
 
+def color_type(value):
+    """Parse a color from a comma-separated string 'R,G,B' into a BGR tuple of ints."""
+    try:
+        r, g, b = map(int, value.split(','))
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
+            raise argparse.ArgumentTypeError("Color values must be between 0 and 255.")
+        return (b, g, r) # Convert RGB from command line to BGR for OpenCV
+    except (ValueError, TypeError):
+        raise argparse.ArgumentTypeError(f"Invalid color format: '{value}'. Expected R,G,B (e.g., '255,0,0').")
+
 
 def safe_imwrite(path, img, quality=92):
     def _print_warning(msg):
@@ -62,7 +72,13 @@ def pillow_fallback(path, img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     Image.fromarray(img).save(path, quality=92)
 
-def process(folder, force: bool = False):
+def process(folder, force: bool = False, border_color=None, background_color=None):
+
+    # When running in a new process, this updates the config with values from the main process
+    if border_color is not None:
+        config.BORDER_COLOR = border_color
+    if background_color is not None:
+        config.BACKGROUND_COLOR = background_color
 
     out=folder/config.OUTPUT_NAME
 
@@ -107,12 +123,21 @@ def main(path, force=False):
     results = []
     if config.is_mt:
         workers=os.cpu_count()
-        process_with_force = partial(process, force=force)
+        process_with_args = partial(
+            process,
+            force=force,
+            border_color=config.BORDER_COLOR,
+            background_color=config.BACKGROUND_COLOR
+        )
         with ProcessPoolExecutor(workers) as exe:
-            results = list(tqdm(exe.map(process_with_force, folders), total=len(folders)))
+            results = list(tqdm(exe.map(process_with_args, folders), total=len(folders)))
     else:
         for folder in tqdm(folders):
-            results.append(process(folder, force=force))
+            results.append(process(
+                folder,
+                force=force,
+                border_color=config.BORDER_COLOR,
+                background_color=config.BACKGROUND_COLOR))
 
     result.folders_updated = results.count("updated")
     result.folders_skipped = results.count("skipped")
@@ -126,12 +151,23 @@ if __name__ == "__main__":
         epilog="EXAMPLES:\n"
                "    python -m folder_cover_gen.cli ~/Pictures\n"
                "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --force"
+               "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --border_color 255,0,0 --background_color 0,255,0"
     )
     parser.add_argument(
         "path",
         metavar="photo_root_folder",
         type=Path,
         help="The path to the folder which contains photo folders."
+    )
+    parser.add_argument(
+        "--background_color",
+        type=color_type,
+        help="Set image background color as R,G,B. Example: --background_color 0,255,0"
+    )
+    parser.add_argument(
+        "--border_color",
+        type=color_type,
+        help="Set image border color as R,G,B. Example: --border_color 255,0,0"
     )
     parser.add_argument(
         "-f", "--force",
@@ -142,6 +178,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
 
+    if args.border_color is not None:
+        config.BORDER_COLOR = args.border_color
+    if args.background_color is not None:
+        config.BACKGROUND_COLOR = args.background_color
 
     if not root.exists():
         print(f"\nError: Path does not exist: {root}\n")
