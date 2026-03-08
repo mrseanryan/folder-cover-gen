@@ -26,13 +26,18 @@ def load_small(path, max_dim=1200):
         img = np.array(img)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
-        # Fix for transparent pixels: ensure no pixel is exactly (0,0,0)
-        # because (0,0,0) is used as the transparency key during pasting.
-        REPLACEMENT_COLOR = config.TRANSPARENT_COLOR
-        # Just change blue channel by 1 to avoid exact match, as we don't want the image to be partly transparent:
-        add_one = (0, 0, 1)
-        REPLACEMENT_COLOR = tuple(a + b for a, b in zip(REPLACEMENT_COLOR, add_one))
-        # Now we can safely replace any pixels that were originally 'would have been transparent' with the replacement color, which will be treated as 'that color' during pasting:
+        # Fix for transparent pixels: ensure no pixel is exactly TRANSPARENT_COLOR
+        # because TRANSPARENT_COLOR is used as the transparency key during pasting.
+        # We create a replacement color that is just slightly different from TRANSPARENT_COLOR.
+        b, g, r = config.TRANSPARENT_COLOR
+        # Just change blue channel by 1 to avoid exact match.
+        if b < 255:
+            b_rep = b + 1
+        else:
+            b_rep = b - 1
+        REPLACEMENT_COLOR = (b_rep, g, r)
+
+        # Now we can safely replace any pixels that were originally the transparent color with the replacement color.
         img[np.all(img == config.TRANSPARENT_COLOR, axis=-1)] = REPLACEMENT_COLOR
 
         return img
@@ -80,7 +85,7 @@ def add_shadow(canvas, x, y, w, h):
         shadow,
         (x+8, y+8),
         (x+w+8, y+h+8),
-        config.TRANSPARENT_COLOR,
+        (0, 0, 0), # Shadow should be black
         -1
     )
 
@@ -89,8 +94,8 @@ def add_shadow(canvas, x, y, w, h):
     cv2.addWeighted(shadow, alpha, canvas, 1-alpha, 0, canvas)
 
 
-def expand_with_black_border(img):
-    """Expand image with black background by 50%"""
+def expand_for_rotation(img):
+    """Expand image with transparent background to make room for rotation."""
     h, w = img.shape[:2]
     new_size = int(max(h, w) * 1.5)
     
@@ -160,7 +165,7 @@ def prepare_image(path):
 
     img = add_border(img)
     
-    img = expand_with_black_border(img)
+    img = expand_for_rotation(img)
 
     angle = random.uniform(-20, 20)
 

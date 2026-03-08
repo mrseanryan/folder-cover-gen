@@ -81,6 +81,7 @@ def process(folder, force: bool = False, border_color=None, image_padding_color=
         config.IMAGE_PADDING_COLOR = image_padding_color
     if canvas_background_color is not None:
         config.CANVAS_BACKGROUND_COLOR = canvas_background_color
+        config.TRANSPARENT_COLOR = canvas_background_color
 
     out=folder/config.OUTPUT_NAME
 
@@ -193,6 +194,7 @@ if __name__ == "__main__":
         config.IMAGE_PADDING_COLOR = args.image_padding_color
     if args.canvas_background_color is not None:
         config.CANVAS_BACKGROUND_COLOR = args.canvas_background_color
+        config.TRANSPARENT_COLOR = args.canvas_background_color
 
     if not root.exists():
         print(f"\nError: Path does not exist: {root}\n")
