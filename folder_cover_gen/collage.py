@@ -26,6 +26,10 @@ def load_small(path, max_dim=1200):
         img = np.array(img)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
+        # Fix for transparent pixels: ensure no pixel is exactly (0,0,0)
+        # because (0,0,0) is used as the transparency key during pasting.
+        img[np.all(img == [0, 0, 0], axis=-1)] = [0, 0, 1]
+
         return img
 
     except Exception as e:
