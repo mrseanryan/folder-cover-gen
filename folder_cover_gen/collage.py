@@ -28,7 +28,12 @@ def load_small(path, max_dim=1200):
 
         # Fix for transparent pixels: ensure no pixel is exactly (0,0,0)
         # because (0,0,0) is used as the transparency key during pasting.
-        img[np.all(img == config.TRANSPARENT_COLOR, axis=-1)] = config.BACKGROUND_COLOR
+        REPLACEMENT_COLOR = config.TRANSPARENT_COLOR
+        # Just change blue channel by 1 to avoid exact match, as we don't want the image to be partly transparent:
+        add_one = (0, 0, 1)
+        REPLACEMENT_COLOR = tuple(a + b for a, b in zip(REPLACEMENT_COLOR, add_one))
+        # Now we can safely replace any pixels that were originally 'would have been transparent' with the replacement color, which will be treated as 'that color' during pasting:
+        img[np.all(img == config.TRANSPARENT_COLOR, axis=-1)] = REPLACEMENT_COLOR
 
         return img
 
