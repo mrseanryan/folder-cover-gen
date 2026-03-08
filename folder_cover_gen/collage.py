@@ -152,7 +152,7 @@ def prepare_image(path):
 
     resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
-    padded = np.full((PHOTO_SIZE, PHOTO_SIZE, 3), config.BACKGROUND_COLOR, dtype=np.uint8)
+    padded = np.full((PHOTO_SIZE, PHOTO_SIZE, 3), config.IMAGE_PADDING_COLOR, dtype=np.uint8)
     y_offset = (PHOTO_SIZE - new_h) // 2
     x_offset = (PHOTO_SIZE - new_w) // 2
     padded[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized

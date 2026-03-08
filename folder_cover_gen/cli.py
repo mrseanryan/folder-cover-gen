@@ -72,13 +72,13 @@ def pillow_fallback(path, img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     Image.fromarray(img).save(path, quality=92)
 
-def process(folder, force: bool = False, border_color=None, background_color=None):
+def process(folder, force: bool = False, border_color=None, image_padding_color=None):
 
     # When running in a new process, this updates the config with values from the main process
     if border_color is not None:
         config.BORDER_COLOR = border_color
-    if background_color is not None:
-        config.BACKGROUND_COLOR = background_color
+    if image_padding_color is not None:
+        config.IMAGE_PADDING_COLOR = image_padding_color
 
     out=folder/config.OUTPUT_NAME
 
@@ -127,7 +127,7 @@ def main(path, force=False):
             process,
             force=force,
             border_color=config.BORDER_COLOR,
-            background_color=config.BACKGROUND_COLOR
+            image_padding_color=config.IMAGE_PADDING_COLOR
         )
         with ProcessPoolExecutor(workers) as exe:
             results = list(tqdm(exe.map(process_with_args, folders), total=len(folders)))
@@ -137,7 +137,7 @@ def main(path, force=False):
                 folder,
                 force=force,
                 border_color=config.BORDER_COLOR,
-                background_color=config.BACKGROUND_COLOR))
+                image_padding_color=config.IMAGE_PADDING_COLOR))
 
     result.folders_updated = results.count("updated")
     result.folders_skipped = results.count("skipped")
@@ -150,8 +150,8 @@ if __name__ == "__main__":
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="EXAMPLES:\n"
                "    python -m folder_cover_gen.cli ~/Pictures\n"
-               "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --force"
-               "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --border_color 255,0,0 --background_color 0,255,0"
+               "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --force\n"
+               "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --border_color 255,0,0 --image_padding_color 0,255,0"
     )
     parser.add_argument(
         "path",
@@ -160,9 +160,9 @@ if __name__ == "__main__":
         help="The path to the folder which contains photo folders."
     )
     parser.add_argument(
-        "--background_color",
+        "--image_padding_color",
         type=color_type,
-        help="Set image background color as R,G,B. Example: --background_color 0,255,0"
+        help="Set image padding color as R,G,B. Example: --image_padding_color 0,255,0"
     )
     parser.add_argument(
         "--border_color",
@@ -180,8 +180,8 @@ if __name__ == "__main__":
 
     if args.border_color is not None:
         config.BORDER_COLOR = args.border_color
-    if args.background_color is not None:
-        config.BACKGROUND_COLOR = args.background_color
+    if args.image_padding_color is not None:
+        config.IMAGE_PADDING_COLOR = args.image_padding_color
 
     if not root.exists():
         print(f"\nError: Path does not exist: {root}\n")

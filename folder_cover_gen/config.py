@@ -7,6 +7,6 @@ is_verbose = False
 
 OUTPUT_NAME = "folder_cover.jpg"
 
-BACKGROUND_COLOR = (0, 0, 1)
+IMAGE_PADDING_COLOR = (0, 0, 1)
 BORDER_COLOR = (255, 255, 255)
 TRANSPARENT_COLOR = (0, 0, 0)
