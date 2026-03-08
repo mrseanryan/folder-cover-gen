@@ -1,11 +1,13 @@
 # folder-cover-gen README
 Generates cover images for a tree of image folders, a bit like the folder preview feature of Dropbox.
 
-For example:
+Example output:
 
-![with-cover](./test_data/japan-by-night/has-cover/folder_cover.jpg)
+![with-cover](./test_data/default-colors/japan-by-night/has-cover/folder_cover.jpg)
 
-![no-cover](./test_data/japan-by-night/no-cover/folder_cover.jpg)
+The generated colors (padding, border, canvas background) can be customised:
+
+![no-cover](./test_data/custom-colors/japan-by-night/no-cover/folder_cover.jpg)
 
 - performance: makes use of GPU (via opencv) and multithreading
 

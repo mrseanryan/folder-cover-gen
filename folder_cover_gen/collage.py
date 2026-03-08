@@ -265,4 +265,10 @@ def create_collage(paths):
         border_size = 10
         canvas = cv2.copyMakeBorder(canvas, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=config.TRANSPARENT_COLOR)
 
+    # Replace transparent background with the desired canvas background color
+    # Note: TRANSPARENT_COLOR is (0,0,0) by default
+    if config.CANVAS_BACKGROUND_COLOR != config.TRANSPARENT_COLOR:
+        mask = np.all(canvas == config.TRANSPARENT_COLOR, axis=2)
+        canvas[mask] = config.CANVAS_BACKGROUND_COLOR
+
     return canvas
