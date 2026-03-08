@@ -1,11 +1,14 @@
 import os
 from PIL import Image
 import cv2
+from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 from pathlib import Path
 import numpy as np
-
+import sys
+from pathlib import Path
+import argparse
 
 from . import config
 from . import output
@@ -62,75 +65,86 @@ def pillow_fallback(path, img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     Image.fromarray(img).save(path, quality=92)
 
-def process(folder, result: Result):
+def process(folder, force: bool = False):
 
     out=folder/OUTPUT_NAME
 
-    if out.exists():
+    if out.exists() and not force:
         output.print_verbose(f"[skipped] {folder} - output already exists: {out}")
-        result.folders_skipped += 1
-        return
+        return "skipped"
 
     imgs=get_all_images_in_folder(folder)
 
     if imgs is None:
         output.print_verbose(f"[skipped] {folder} - no images found")
-        result.folders_skipped += 1
-        return
+        return "skipped"
 
     collage=create_collage(imgs)
 
     if collage is None:
         output.print_warning(f"WARNING: Failed to create collage for folder: {folder}")
-        result.folders_skipped += 1
-        return
+        return "skipped"
 
     output.print_verbose(f"Saving cover for folder: {folder} -> {out}")
     ok = safe_imwrite(out, collage)
     if not ok:
         pillow_fallback(out, collage)
-    result.folders_updated += 1
+    return "updated"
 
-def main(path):
+def main(path, force=False):
     if not os.path.exists(path):
         print(f"Path does not exist: {path}")
         return
 
     folders=find_photo_folders(path)
 
-    print(f"Found {len(folders)} folders")
+    if len(folders) == 0:
+        print("No folders with enough images found.")
+        return
+
+    print(f"Found {len(folders)} folders to process.")
 
     result = Result()
     result.found_folders = len(folders)
+
+    results = []
     if config.is_mt:
         workers=os.cpu_count()
+        process_with_force = partial(process, force=force)
         with ProcessPoolExecutor(workers) as exe:
-            list(tqdm(exe.map(process,folders),total=len(folders)))
+            results = list(tqdm(exe.map(process_with_force, folders), total=len(folders)))
     else:
         for folder in tqdm(folders):
-            process(folder, result=result)
+            results.append(process(folder, force=force))
+
+    result.folders_updated = results.count("updated")
+    result.folders_skipped = results.count("skipped")
 
     print(result)
 
 if __name__ == "__main__":
-    import sys
-    from pathlib import Path
+    parser = argparse.ArgumentParser(
+        description="Photo Folder Covers — Dropbox-style folder thumbnails",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog="EXAMPLES:\n"
+               "    python -m folder_cover_gen.cli ~/Pictures\n"
+               "    python -m folder_cover_gen.cli /Volumes/PhotoArchive --force"
+    )
+    parser.add_argument(
+        "path",
+        metavar="photo_root_folder",
+        type=Path,
+        help="The path to the folder which contains photo folders."
+    )
+    parser.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help="Overwrite existing folder_cover.jpg files."
+    )
 
-    def print_usage():
-        print("\nPhoto Folder Covers — Dropbox-style folder thumbnails\n")
-        print("USAGE:")
-        print("    python -m folder_cover_gen.cli <photo_root_folder>\n")
-        print("ARGUMENTS:")
-        print("    photo_root_folder - The path to the folder which contains photo folders>\n")
-        print("EXAMPLES:")
-        print("    python -m folder_cover_gen.cli ~/Pictures")
-        print("    python -m folder_cover_gen.cli /Volumes/PhotoArchive\n")
+    args = parser.parse_args()
+    root = args.path
 
-    if len(sys.argv) < 2:
-        print_usage()
-        sys.exit(1)
-
-    root = Path(sys.argv[1])
 
     if not root.exists():
         print(f"\nError: Path does not exist: {root}\n")
@@ -140,5 +154,5 @@ if __name__ == "__main__":
         print(f"\nError: Path is not a directory: {root}\n")
         sys.exit(1)
 
-    main(root)
+    main(root, force=args.force)
     print("[done]")
