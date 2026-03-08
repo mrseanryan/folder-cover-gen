@@ -136,7 +136,22 @@ def prepare_image(path):
         print(f"WARNING: Failed to load image: {path}")
         return None
 
-    img = cv2.resize(img, (PHOTO_SIZE, PHOTO_SIZE))
+    # Resize while preserving aspect ratio, and pad to square
+    h, w = img.shape[:2]
+    if h > w:
+        new_h = PHOTO_SIZE
+        new_w = int(w * (PHOTO_SIZE / h))
+    else:
+        new_w = PHOTO_SIZE
+        new_h = int(h * (PHOTO_SIZE / w))
+
+    resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+    padded = np.full((PHOTO_SIZE, PHOTO_SIZE, 3), [0, 0, 1], dtype=np.uint8)
+    y_offset = (PHOTO_SIZE - new_h) // 2
+    x_offset = (PHOTO_SIZE - new_w) // 2
+    padded[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized
+    img = padded
 
     img = add_border(img)
     
