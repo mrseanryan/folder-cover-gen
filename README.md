@@ -17,6 +17,12 @@ The generated colors (padding, border, canvas background) can be customised:
 ./go.sh <path to root folder>
 ```
 
+or to view the built-in help:
+
+```
+./go.sh
+```
+
 - note: if an image is named with the prefix `cover.` then it will always be used in the generated folder image, and be placed at the top
   - only 1 such image should appear in each folder
 - if the folder already has a folder_cover.jpg file, then that folder is skipped.

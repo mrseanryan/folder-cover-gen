@@ -77,22 +77,61 @@ def rotate(img, angle):
     return rotated
 
 
-def add_shadow(canvas, x, y, w, h):
+def add_shadow(canvas, img, x, y):
+    """
+    Adds a soft, blurred shadow for the given image onto the canvas.
+    The shadow is shaped like the image and offset to the top-right.
+    """
+    shadow_offset = 8
+    shadow_alpha = 0.35  # Increased alpha a bit to make the softer shadow more visible
+    blur_amount = 21  # Kernel size for Gaussian Blur, must be odd
 
-    shadow = canvas.copy()
+    h, w = img.shape[:2]
 
-    cv2.rectangle(
-        shadow,
-        (x+8, y+8),
-        (x+w+8, y+h+8),
-        (0, 0, 0), # Shadow should be black
-        -1
-    )
+    # 1. Create a grayscale mask of the image's shape
+    shadow_mask = (np.any(img != config.TRANSPARENT_COLOR, axis=2)).astype(np.uint8) * 255
 
-    alpha = 0.25
+    # 2. Blur the mask to create a soft shadow
+    # The blur kernel size must be an odd number
+    if blur_amount % 2 == 0:
+        blur_amount += 1
+    blurred_mask = cv2.GaussianBlur(shadow_mask, (blur_amount, blur_amount), 0)
 
-    cv2.addWeighted(shadow, alpha, canvas, 1-alpha, 0, canvas)
+    # 3. Determine the shadow's position (top-right offset)
+    shadow_x_start = x + shadow_offset
+    shadow_y_start = y - shadow_offset
 
+    # 4. Calculate the region of interest (ROI) on the main canvas
+    canvas_y_start = max(0, shadow_y_start)
+    canvas_x_start = max(0, shadow_x_start)
+    canvas_y_end = min(canvas.shape[0], shadow_y_start + h)
+    canvas_x_end = min(canvas.shape[1], shadow_x_start + w)
+
+    # If the shadow area is completely off-canvas, there's nothing to do
+    if canvas_y_end <= canvas_y_start or canvas_x_end <= canvas_x_start:
+        return
+
+    # 5. Get the slice of the canvas that the shadow will be drawn on
+    canvas_slice = canvas[canvas_y_start:canvas_y_end, canvas_x_start:canvas_x_end]
+
+    # 6. Calculate the corresponding slice of the blurred mask
+    mask_y_start = canvas_y_start - shadow_y_start
+    mask_x_start = canvas_x_start - shadow_x_start
+    mask_y_end = mask_y_start + (canvas_y_end - canvas_y_start)
+    mask_x_end = mask_x_start + (canvas_x_end - canvas_x_start)
+    blurred_mask_slice = blurred_mask[mask_y_start:mask_y_end, mask_x_start:mask_x_end]
+
+    # 7. Blend the shadow onto the canvas slice
+    # Normalize the mask to get alpha values (0.0 to 1.0) and scale by shadow_alpha
+    # Add a new axis to allow broadcasting with the 3-channel canvas slice
+    alpha_mask = (blurred_mask_slice / 255.0 * shadow_alpha)[:, :, np.newaxis]
+
+    # The blending formula is: New = Background * (1 - alpha) + ShadowColor * alpha
+    # Since ShadowColor is black (0), this simplifies to: New = Background * (1 - alpha)
+    blended_slice = canvas_slice.astype(np.float32) * (1 - alpha_mask)
+
+    # Update the canvas with the blended result
+    canvas[canvas_y_start:canvas_y_end, canvas_x_start:canvas_x_end] = blended_slice.astype(np.uint8)
 
 def expand_for_rotation(img):
     """Expand image with transparent background to make room for rotation."""
@@ -230,9 +269,7 @@ def create_collage(paths):
 
     for img,(x,y) in zip(imgs,positions):
 
-        h,w = img.shape[:2]
-
-        add_shadow(canvas,x,y,w,h)
+        add_shadow(canvas,img,x,y)
         paste(canvas,img,x,y)
 
     # Crop to remove excess black and add a small border
