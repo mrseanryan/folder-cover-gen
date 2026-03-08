@@ -4,7 +4,7 @@ import numpy as np
 import random
 from pathlib import Path
 
-from . import output
+from . import output, config
 
 COVER_SIZE = 1024
 PHOTO_SIZE = 300
@@ -28,7 +28,7 @@ def load_small(path, max_dim=1200):
 
         # Fix for transparent pixels: ensure no pixel is exactly (0,0,0)
         # because (0,0,0) is used as the transparency key during pasting.
-        img[np.all(img == [0, 0, 0], axis=-1)] = [0, 0, 1]
+        img[np.all(img == config.TRANSPARENT_COLOR, axis=-1)] = config.BACKGROUND_COLOR
 
         return img
 
@@ -45,7 +45,7 @@ def add_border(img):
         BORDER,
         BORDER,
         cv2.BORDER_CONSTANT,
-        value=(255, 255, 255)
+        value=config.BORDER_COLOR
     )
 
 
@@ -61,7 +61,7 @@ def rotate(img, angle):
         M,
         (w, h),
         borderMode=cv2.BORDER_CONSTANT,
-        borderValue=(0, 0, 0)
+        borderValue=config.TRANSPARENT_COLOR
     )
     
     return rotated
@@ -75,7 +75,7 @@ def add_shadow(canvas, x, y, w, h):
         shadow,
         (x+8, y+8),
         (x+w+8, y+h+8),
-        (0,0,0),
+        config.TRANSPARENT_COLOR,
         -1
     )
 
@@ -89,7 +89,7 @@ def expand_with_black_border(img):
     h, w = img.shape[:2]
     new_size = int(max(h, w) * 1.5)
     
-    expanded = np.zeros((new_size, new_size, 3), dtype=np.uint8)
+    expanded = np.full((new_size, new_size, 3), config.TRANSPARENT_COLOR, dtype=np.uint8)
     
     y_offset = (new_size - h) // 2
     x_offset = (new_size - w) // 2
@@ -123,7 +123,7 @@ def paste(canvas, img, x, y):
     img_slice = img[img_y_start:img_y_end, img_x_start:img_x_end]
 
     # Create mask - pixels where at least one channel is non-zero
-    mask = np.any(img_slice != 0, axis=2)
+    mask = np.any(img_slice != config.TRANSPARENT_COLOR, axis=2)
 
     # Create a fresh target by reading current canvas and updating only mask pixels
     canvas[y_start:y_end, x_start:x_end][mask] = img_slice[mask]
@@ -147,7 +147,7 @@ def prepare_image(path):
 
     resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
-    padded = np.full((PHOTO_SIZE, PHOTO_SIZE, 3), [0, 0, 1], dtype=np.uint8)
+    padded = np.full((PHOTO_SIZE, PHOTO_SIZE, 3), config.BACKGROUND_COLOR, dtype=np.uint8)
     y_offset = (PHOTO_SIZE - new_h) // 2
     x_offset = (PHOTO_SIZE - new_w) // 2
     padded[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized
@@ -166,7 +166,7 @@ def prepare_image(path):
 
 def create_collage(paths):
 
-    canvas = np.zeros((COVER_SIZE, COVER_SIZE, 3), dtype=np.uint8)
+    canvas = np.full((COVER_SIZE, COVER_SIZE, 3), config.TRANSPARENT_COLOR, dtype=np.uint8)
 
     imgs = []
     img_paths = []
@@ -258,6 +258,6 @@ def create_collage(paths):
         
         # Add black border
         border_size = 10
-        canvas = cv2.copyMakeBorder(canvas, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+        canvas = cv2.copyMakeBorder(canvas, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=config.TRANSPARENT_COLOR)
 
     return canvas
