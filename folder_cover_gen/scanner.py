@@ -1,12 +1,15 @@
 from pathlib import Path
 import random
 
+from . import config
+
 IMAGE_EXT = {".jpg",".jpeg",".png",".webp"}
 
-def _has_folder_enough_images(folder):
-    imgs=[f for f in folder.iterdir() if f.suffix.lower() in IMAGE_EXT]
+def _get_image_files(folder):
+    return [f for f in folder.iterdir() if f.suffix.lower() in IMAGE_EXT and f.name.lower() != config.OUTPUT_NAME.lower()]
 
-    return len(imgs)>=3
+def _has_folder_enough_images(folder):
+    return len(_get_image_files(folder)) >= 3
 
 def find_photo_folders(root):
 
@@ -25,9 +28,5 @@ def find_photo_folders(root):
 
     return folders
 
-
 def get_all_images_in_folder(folder):
-
-    imgs=[p for p in folder.iterdir() if p.suffix.lower() in IMAGE_EXT]
-
-    return imgs
+    return _get_image_files(folder)

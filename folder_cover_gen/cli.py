@@ -9,14 +9,11 @@ import numpy as np
 import sys
 from pathlib import Path
 import argparse
-
 from . import config
 from . import output
 from .scanner import find_photo_folders,get_all_images_in_folder
 from .collage import create_collage
 from .result import Result
-
-OUTPUT_NAME="folder_cover.jpg"
 
 
 def safe_imwrite(path, img, quality=92):
@@ -67,7 +64,7 @@ def pillow_fallback(path, img):
 
 def process(folder, force: bool = False):
 
-    out=folder/OUTPUT_NAME
+    out=folder/config.OUTPUT_NAME
 
     if out.exists() and not force:
         output.print_verbose(f"[skipped] {folder} - output already exists: {out}")

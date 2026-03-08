@@ -4,3 +4,5 @@ is_mt = True
 is_debug = False
 
 is_verbose = False
+
+OUTPUT_NAME = "folder_cover.jpg"
