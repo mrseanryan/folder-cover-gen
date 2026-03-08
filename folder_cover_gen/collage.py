@@ -273,10 +273,9 @@ def create_collage(paths):
         paste(canvas,img,x,y)
 
     # Crop to remove excess black and add a small border
-    gray = cv2.cvtColor(canvas, cv2.COLOR_BGR2GRAY)
-    non_black = gray > 0
-    coords = np.argwhere(non_black)
-    
+    non_transparent = np.any(canvas != config.TRANSPARENT_COLOR, axis=2)
+    coords = np.argwhere(non_transparent)
+
     if len(coords) > 0:
         y_min, x_min = coords.min(axis=0)
         y_max, x_max = coords.max(axis=0)
