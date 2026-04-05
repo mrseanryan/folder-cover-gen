@@ -165,9 +165,9 @@ if __name__ == "__main__":
         help="The path to the folder which contains photo folders."
     )
     parser.add_argument(
-        "--image_padding_color",
+        "--border_color",
         type=color_type,
-        help="Set image padding color as R,G,B. Example: --image_padding_color 0,255,0"
+        help="Set image border color as R,G,B. Example: --border_color 255,0,0"
     )
     parser.add_argument(
         "--canvas_background_color",
@@ -175,14 +175,18 @@ if __name__ == "__main__":
         help="Set canvas background color as R,G,B. Defaults to 0,0,0. Example: --canvas_background_color 10,10,10"
     )
     parser.add_argument(
-        "--border_color",
-        type=color_type,
-        help="Set image border color as R,G,B. Example: --border_color 255,0,0"
-    )
-    parser.add_argument(
         "-f", "--force",
         action="store_true",
         help="Overwrite existing folder_cover.jpg files."
+    )
+    parser.add_argument(
+        "--image_padding_color",
+        type=color_type,
+        help="Set image padding color as R,G,B. Example: --image_padding_color 0,255,0"
+    )
+    parser.add_argument(
+        "--include",
+        help="Try to include images that match the list of sub-strings. Example: --include cat,dog (will include images with 'cat' or 'dog' in the filename)"
     )
 
     args = parser.parse_args()
