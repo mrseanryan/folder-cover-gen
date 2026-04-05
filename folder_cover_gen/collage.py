@@ -213,6 +213,24 @@ def prepare_image(path):
     return img
 
 
+def path_matches_include(path):
+    if not config.INCLUDE_SUBSTRINGS:
+        return False
+
+    filename = Path(path).name.lower()
+    return any(term in filename for term in config.INCLUDE_SUBSTRINGS)
+
+
+def prioritize_included_paths(paths):
+    prioritized = [p for p in paths if path_matches_include(p)]
+    others = [p for p in paths if not path_matches_include(p)]
+
+    random.shuffle(prioritized)
+    random.shuffle(others)
+
+    return prioritized + others
+
+
 def create_collage(paths):
 
     canvas = np.full((COVER_SIZE, COVER_SIZE, 3), config.TRANSPARENT_COLOR, dtype=np.uint8)
@@ -230,8 +248,7 @@ def create_collage(paths):
 
     # Add other images first (stop at 2 if we have a cover, or 3 if we don't)
     target_count = 2 if cover_idx is not None else 3
-    available_paths = [p for i, p in enumerate(paths) if i != cover_idx]
-    random.shuffle(available_paths)
+    available_paths = prioritize_included_paths([p for i, p in enumerate(paths) if i != cover_idx])
     
     for p in available_paths:
         img = prepare_image(p)

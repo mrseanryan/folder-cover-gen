@@ -49,6 +49,14 @@ uv sync
 
 ## Test
 
+Run unit tests:
+
 ```
 ./test.sh
+```
+
+Run e2e tests:
+
+```
+./test.e2e.sh
 ```

@@ -26,6 +26,14 @@ def color_type(value):
         raise argparse.ArgumentTypeError(f"Invalid color format: '{value}'. Expected R,G,B (e.g., '255,0,0').")
 
 
+def include_type(value):
+    """Parse a comma-separated list of filename substrings to prioritize."""
+    substrings = [item.strip().lower() for item in value.split(',') if item.strip()]
+    if not substrings:
+        raise argparse.ArgumentTypeError("Include list cannot be empty. Example: --include cat,dog")
+    return substrings
+
+
 def safe_imwrite(path, img, quality=92):
     def _print_warning(msg):
         output.print_warning(f" - will save via PIL - {msg}")
@@ -72,7 +80,7 @@ def pillow_fallback(path, img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     Image.fromarray(img).save(path, quality=92)
 
-def process(folder, force: bool = False, border_color=None, image_padding_color=None, canvas_background_color=None):
+def process(folder, force: bool = False, border_color=None, image_padding_color=None, canvas_background_color=None, include_substrings=None):
 
     # When running in a new process, this updates the config with values from the main process
     if border_color is not None:
@@ -82,6 +90,8 @@ def process(folder, force: bool = False, border_color=None, image_padding_color=
     if canvas_background_color is not None:
         config.CANVAS_BACKGROUND_COLOR = canvas_background_color
         config.TRANSPARENT_COLOR = canvas_background_color
+    if include_substrings is not None:
+        config.INCLUDE_SUBSTRINGS = include_substrings
 
     out=folder/config.OUTPUT_NAME
 
@@ -131,7 +141,8 @@ def main(path, force=False):
             force=force,
             border_color=config.BORDER_COLOR,
             image_padding_color=config.IMAGE_PADDING_COLOR,
-            canvas_background_color=config.CANVAS_BACKGROUND_COLOR
+            canvas_background_color=config.CANVAS_BACKGROUND_COLOR,
+            include_substrings=config.INCLUDE_SUBSTRINGS
         )
         with ProcessPoolExecutor(workers) as exe:
             results = list(tqdm(exe.map(process_with_args, folders), total=len(folders)))
@@ -142,7 +153,8 @@ def main(path, force=False):
                 force=force,
                 border_color=config.BORDER_COLOR,
                 image_padding_color=config.IMAGE_PADDING_COLOR,
-                canvas_background_color=config.CANVAS_BACKGROUND_COLOR))
+                canvas_background_color=config.CANVAS_BACKGROUND_COLOR,
+                include_substrings=config.INCLUDE_SUBSTRINGS))
 
     result.folders_updated = results.count("updated")
     result.folders_skipped = results.count("skipped")
@@ -186,6 +198,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--include",
+        type=include_type,
         help="Try to include images that match the list of sub-strings. Example: --include cat,dog (will include images with 'cat' or 'dog' in the filename)"
     )
 
@@ -199,6 +212,8 @@ if __name__ == "__main__":
     if args.canvas_background_color is not None:
         config.CANVAS_BACKGROUND_COLOR = args.canvas_background_color
         config.TRANSPARENT_COLOR = args.canvas_background_color
+    if args.include is not None:
+        config.INCLUDE_SUBSTRINGS = args.include
 
     if not root.exists():
         print(f"\nError: Path does not exist: {root}\n")
